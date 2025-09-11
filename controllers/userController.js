@@ -2,12 +2,35 @@ const User = require("../models/User");
 const cloudinary = require("../config/cloudinary");
 
 // Get all users
+// Get all users
 exports.getUsers = async (req, res) => {
   try {
     const users = await User.find();
-    res.json(users);
+    res.status(200).json({
+      success: true,
+      message: "Users fetched successfully",
+      error: null,
+      data: users.map(user => ({
+        userUUID: user.userUUID,
+        name: user.name,
+        email: user.email,
+        mobileNumber: user.mobileNumber,
+        platform: user.platform,
+        imageUrl: user.imageUrl,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      })),
+    });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    res.status(201).json({
+      success: false,
+      message: "Failed to fetch users",
+      data: null,
+      error: {
+        title: "Server Error",
+        description: error.message,
+      },
+    });
   }
 };
 

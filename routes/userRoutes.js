@@ -12,6 +12,7 @@ router.delete("/:id", userController.deleteUser);
 
 // ✅ New route: get user by userUUID or mobileNumber
 router.get("/find/by", userController.getUserByUUIDOrMobile);
+router.put("/update-image", userController.updateUserImage);
 
 // ✅ IMAGE UPLOAD
 router.post("/", upload.single("image"), userController.createUser);

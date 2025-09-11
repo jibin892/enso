@@ -150,6 +150,67 @@ exports.createUser = async (req, res) => {
   }
 };
 
+// Update user image by userUUID
+exports.updateUserImage = async (req, res) => {
+  try {
+    const { userUUID, imageUrl } = req.body;
+
+    if (!userUUID || !imageUrl) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields",
+        error: {
+          title: "Validation Error",
+          description: "Both userUUID and imageUrl are required.",
+        },
+      });
+    }
+
+    const user = await User.findOneAndUpdate(
+      { userUUID },
+      { imageUrl },
+      { new: true } // return updated document
+    );
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+        error: {
+          title: "Not Found",
+          description: `No user found with userUUID: ${userUUID}`,
+        },
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Image updated successfully",
+      error: null,
+      data: {
+        userUUID: user.userUUID,
+        name: user.name,
+        email: user.email,
+        mobileNumber: user.mobileNumber,
+        platform: user.platform,
+        imageUrl: user.imageUrl,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to update image",
+      error: {
+        title: "Server Error",
+        description: error.message,
+      },
+    });
+  }
+};
+
+
 // exports.createUser = async (req, res) => {
 //   try {
 //     let imageUrl = "";

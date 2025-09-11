@@ -55,10 +55,11 @@ exports.getUserByUUIDOrMobile = async (req, res) => {
       }
     });
   } catch (error) {
-    res.status(500).json({
+    res.status(201).json({
       success: false,
       message: "Server error",
-      error: error.message
+      error: error.message,
+      data:null
     });
   }
 };
@@ -138,7 +139,7 @@ exports.createUser = async (req, res) => {
         .join(" ");
     }
 
-    res.status(400).json({
+    res.status(201).json({
       success: false,
       message: "User creation failed",
       data: null,

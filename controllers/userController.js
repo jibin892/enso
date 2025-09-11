@@ -71,6 +71,7 @@ exports.createUser = async (req, res) => {
       name: req.body.name,
       email: req.body.email,
       mobileNumber: req.body.mobileNumber,
+      platform: req.body.platform || "unknown", // 👈 now handled safely
       imageUrl: req.body.imageUrl || "https://cdn-icons-png.flaticon.com/512/9187/9187604.png", // default "l" if not provided
     });
 

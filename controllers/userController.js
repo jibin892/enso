@@ -132,7 +132,7 @@ exports.createUser = async (req, res) => {
         .join(" ");
     }
 
-    res.status(400).json({
+    res.status(201).json({
       success: false,
       message: "User creation failed",
       data: null,

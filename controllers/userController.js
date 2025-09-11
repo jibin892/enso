@@ -64,6 +64,7 @@ exports.getUserByUUIDOrMobile = async (req, res) => {
 };
 
 // Create new user
+// Create new user
 exports.createUser = async (req, res) => {
   try {
     const user = new User({
@@ -72,7 +73,9 @@ exports.createUser = async (req, res) => {
       email: req.body.email,
       mobileNumber: req.body.mobileNumber,
       platform: req.body.platform || "unknown",
-      imageUrl: req.body.imageUrl || "https://cdn-icons-png.flaticon.com/512/9187/9187604.png",
+      imageUrl:
+        req.body.imageUrl ||
+        "https://cdn-icons-png.flaticon.com/512/9187/9187604.png",
     });
 
     await user.save();
@@ -94,7 +97,8 @@ exports.createUser = async (req, res) => {
     });
   } catch (error) {
     let errorTitle = "User Creation Failed";
-    let errorDescription = "An unexpected error occurred while creating the user.";
+    let errorDescription =
+      "An unexpected error occurred while creating the user.";
 
     // ✅ Duplicate key error (MongoDB unique constraint)
     if (error.code === 11000) {
@@ -103,13 +107,16 @@ exports.createUser = async (req, res) => {
 
       switch (field) {
         case "email":
-          errorDescription = "The email address is already registered. Please use another.";
+          errorDescription =
+            "The email address is already registered. Please use another.";
           break;
         case "mobileNumber":
-          errorDescription = "The mobile number is already registered. Please use another.";
+          errorDescription =
+            "The mobile number is already registered. Please use another.";
           break;
         case "userUUID":
-          errorDescription = "The userUUID must be unique. Please generate a new one.";
+          errorDescription =
+            "The userUUID must be unique. Please generate a new one.";
           break;
         default:
           errorDescription = `The value for '${field}' already exists.`;
@@ -120,9 +127,8 @@ exports.createUser = async (req, res) => {
     if (error.name === "ValidationError") {
       errorTitle = "Validation Error";
 
-      // Collect all validation issues
       errorDescription = Object.values(error.errors)
-        .map(err => {
+        .map((err) => {
           if (err.path === "name") return "Name is required.";
           if (err.path === "email") return "Email is required.";
           if (err.path === "mobileNumber") return "Mobile number is required.";
@@ -132,7 +138,7 @@ exports.createUser = async (req, res) => {
         .join(" ");
     }
 
-    res.status(201).json({
+    res.status(400).json({
       success: false,
       message: "User creation failed",
       data: null,
@@ -143,7 +149,6 @@ exports.createUser = async (req, res) => {
     });
   }
 };
-
 
 // exports.createUser = async (req, res) => {
 //   try {

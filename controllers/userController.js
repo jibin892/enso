@@ -71,7 +71,7 @@ exports.createUser = async (req, res) => {
       name: req.body.name,
       email: req.body.email,
       mobileNumber: req.body.mobileNumber,
-      imageUrl: req.body.imageUrl || "", // default "l" if not provided
+      imageUrl: req.body.imageUrl || "l", // default "l" if not provided
     });
 
     await user.save();
@@ -79,6 +79,7 @@ exports.createUser = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "User created successfully",
+      error:null,
       data: {
         userUUID: user.userUUID,
         name: user.name,
@@ -90,17 +91,32 @@ exports.createUser = async (req, res) => {
       },
     });
   } catch (error) {
-    let friendlyMessage = "Failed to create user";
+    let errorTitle = "User Creation Failed";
+    let errorDescription = "An unexpected error occurred while creating the user.";
 
+    // Duplicate key error (MongoDB)
     if (error.code === 11000) {
-      friendlyMessage = `Duplicate field: ${Object.keys(error.keyPattern).join(", ")} already exists.`;
+      const field = Object.keys(error.keyPattern).join(", ");
+      errorTitle = "Duplicate Field Error";
+      errorDescription = `The value for '${field}' already exists. Please use a different one.`;
+    }
+
+    // Validation errors (Mongoose required fields, format, etc.)
+    if (error.name === "ValidationError") {
+      errorTitle = "Validation Error";
+      errorDescription = Object.values(error.errors)
+        .map(err => err.message)
+        .join("; ");
     }
 
     res.status(400).json({
       success: false,
-      message: friendlyMessage,
-      data:null,
-      error: error.message,
+      message: "User created successfully",
+      data: null,
+      error: {
+        title: errorTitle,
+        description: errorDescription,
+      },
     });
   }
 };

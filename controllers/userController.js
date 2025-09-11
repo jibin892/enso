@@ -63,26 +63,15 @@ exports.getUserByUUIDOrMobile = async (req, res) => {
   }
 };
 
- 
 // Create new user
 exports.createUser = async (req, res) => {
   try {
-    // Auto-detect platform from User-Agent if not provided
-    let platform = req.body.platform;
-    if (!platform) {
-      const userAgent = req.headers["user-agent"]?.toLowerCase() || "";
-      if (userAgent.includes("android")) platform = "ANDROID";
-      else if (userAgent.includes("iphone") || userAgent.includes("ios")) platform = "IOS";
-      else if (userAgent.includes("windows") || userAgent.includes("macintosh") || userAgent.includes("linux")) platform = "DESKTOP";
-      else platform = "WEB";
-    }
-
     const user = new User({
       userUUID: req.body.userUUID,
       name: req.body.name,
       email: req.body.email,
       mobileNumber: req.body.mobileNumber,
-      platform,
+      platform: req.body.platform || "unknown",
       imageUrl: req.body.imageUrl || "https://cdn-icons-png.flaticon.com/512/9187/9187604.png",
     });
 
@@ -107,6 +96,7 @@ exports.createUser = async (req, res) => {
     let errorTitle = "User Creation Failed";
     let errorDescription = "An unexpected error occurred while creating the user.";
 
+    // ✅ Duplicate key error (MongoDB unique constraint)
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern).join(", ");
       errorTitle = "Duplicate Field Error";
@@ -126,22 +116,33 @@ exports.createUser = async (req, res) => {
       }
     }
 
+    // ✅ Validation errors (required fields missing or invalid)
     if (error.name === "ValidationError") {
       errorTitle = "Validation Error";
+
+      // Collect all validation issues
       errorDescription = Object.values(error.errors)
-        .map(err => `${err.path} is required.`)
+        .map(err => {
+          if (err.path === "name") return "Name is required.";
+          if (err.path === "email") return "Email is required.";
+          if (err.path === "mobileNumber") return "Mobile number is required.";
+          if (err.path === "userUUID") return "UserUUID is required.";
+          return err.message;
+        })
         .join(" ");
     }
 
-    res.status(400).json({
+    res.status(201).json({
       success: false,
       message: "User creation failed",
       data: null,
-      error: { title: errorTitle, description: errorDescription },
+      error: {
+        title: errorTitle,
+        description: errorDescription,
+      },
     });
   }
 };
-
 
 
 // exports.createUser = async (req, res) => {

@@ -61,44 +61,49 @@ exports.getUserByUUIDOrMobile = async (req, res) => {
 };
 
 // Create new user
-const User = require("../models/User");
-const cloudinary = require("../config/cloudinary");
-
-// Create new user with optional image upload
 exports.createUser = async (req, res) => {
   try {
-    let imageUrl = "";
-
-    // If an image file is included in the request, upload it to Cloudinary
-    if (req.file) {
-      const result = await cloudinary.uploader.upload(req.file.path, {
-        folder: "user_images",
-      });
-      imageUrl = result.secure_url;
-    }
-
-    // Merge imageUrl with other user data
-    const userData = {
-      ...req.body,
-      imageUrl: imageUrl || req.body.imageUrl || "l" // fallback to default "l"
-    };
-
-    const user = new User(userData);
+    const user = new User(req.body);
     await user.save();
-
-    res.status(201).json({
-      success: true,
-      message: "User created successfully",
-      data: user
-    });
+    res.status(201).json(user);
   } catch (error) {
-    res.status(400).json({
-      success: false,
-      error: error.message
-    });
+    res.status(400).json({ error: error.message });
   }
 };
 
+// exports.createUser = async (req, res) => {
+//   try {
+//     let imageUrl = "";
+
+//     // If an image file is included in the request, upload it to Cloudinary
+//     if (req.file) {
+//       const result = await cloudinary.uploader.upload(req.file.path, {
+//         folder: "user_images",
+//       });
+//       imageUrl = result.secure_url;
+//     }
+
+//     // Merge imageUrl with other user data
+//     const userData = {
+//       ...req.body,
+//       imageUrl: imageUrl || req.body.imageUrl || "l" // fallback to default "l"
+//     };
+
+//     const user = new User(userData);
+//     await user.save();
+
+//     res.status(201).json({
+//       success: true,
+//       message: "User created successfully",
+//       data: user
+//     });
+//   } catch (error) {
+//     res.status(400).json({
+//       success: false,
+//       error: error.message
+//     });
+//   }
+// };
 
 // Get user by ID
 exports.getUser = async (req, res) => {

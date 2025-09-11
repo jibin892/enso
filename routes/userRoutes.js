@@ -1,6 +1,7 @@
 const express = require("express");
 const router = express.Router();
 const userController = require("../controllers/userController");
+const upload = require("../middleware/upload"); // multer-cloudinary middleware
 
 // CRUD endpoints
 router.get("/", userController.getUsers);
@@ -11,6 +12,9 @@ router.delete("/:id", userController.deleteUser);
 
 // ✅ New route: get user by userUUID or mobileNumber
 router.get("/find/by", userController.getUserByUUIDOrMobile);
+
+// ✅ IMAGE UPLOAD
+router.post("/", upload.single("image"), userController.createUser);
 
 
 module.exports = router;

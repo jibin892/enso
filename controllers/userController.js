@@ -28,7 +28,7 @@ exports.getUserByUUIDOrMobile = async (req, res) => {
     const user = await User.findOne({
       $or: [
         { userUUID: userUUID },
-        { mobileNumber: mobileNumber }
+        { mobileNumber: new RegExp("^" + mobileNumber.replace("+", "\\+")) }
       ]
     });
 
@@ -48,6 +48,7 @@ exports.getUserByUUIDOrMobile = async (req, res) => {
         name: user.name,
         email: user.email,
         mobileNumber: user.mobileNumber,
+         platform: user.platform,
         imageUrl: user.imageUrl,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt

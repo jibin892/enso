@@ -10,6 +10,55 @@ exports.getUsers = async (req, res) => {
   }
 };
 
+
+// Get user by userUUID or mobileNumber
+exports.getUserByUUIDOrMobile = async (req, res) => {
+  try {
+    const { userUUID, mobileNumber } = req.query;
+
+    if (!userUUID && !mobileNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide either userUUID or mobileNumber"
+      });
+    }
+
+    const user = await User.findOne({
+      $or: [
+        { userUUID: userUUID },
+        { mobileNumber: mobileNumber }
+      ]
+    });
+
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    return res.json({
+      success: true,
+      message: "User retrieved successfully",
+      data: {
+        userUUID: user.userUUID,
+        name: user.name,
+        email: user.email,
+        mobileNumber: user.mobileNumber,
+        imageUrl: user.imageUrl,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message
+    });
+  }
+};
+
 // Create new user
 exports.createUser = async (req, res) => {
   try {

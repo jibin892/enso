@@ -5,7 +5,7 @@ const userSchema = new mongoose.Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   mobileNumber: { type: String, required: true, unique: true },
-  platform: { type: String, required: true, unique: false },
+  platform: { type: String, required: false, unique: false },
   imageUrl: { type: String, default: "l" } // default value same as Kotlin
 }, { timestamps: true });
 

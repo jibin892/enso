@@ -20,7 +20,8 @@ exports.getUserByUUIDOrMobile = async (req, res) => {
     if (!userUUID && !mobileNumber) {
       return res.status(400).json({
         success: false,
-        message: "Please provide either userUUID or mobileNumber"
+        message: "Please provide either userUUID or mobileNumber",
+        data: null
       });
     }
 
@@ -32,9 +33,10 @@ exports.getUserByUUIDOrMobile = async (req, res) => {
     });
 
     if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found"
+      return res.json({
+        success: true,
+        message: "No user found with the given criteria",
+        data: null
       });
     }
 

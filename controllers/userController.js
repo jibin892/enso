@@ -151,6 +151,7 @@ exports.createUser = async (req, res) => {
 };
 
 // Update user image by userUUID
+// Update user image by userUUID
 exports.updateUserImage = async (req, res) => {
   try {
     const { userUUID, imageUrl } = req.body;

@@ -64,7 +64,6 @@ exports.getUserByUUIDOrMobile = async (req, res) => {
 };
 
 // Create new user
- 
 exports.createUser = async (req, res) => {
   try {
     const user = new User({
@@ -72,8 +71,8 @@ exports.createUser = async (req, res) => {
       name: req.body.name,
       email: req.body.email,
       mobileNumber: req.body.mobileNumber,
-      platform: req.body.platform || "unknown", // 👈 now handled safely
-      imageUrl: req.body.imageUrl || "https://cdn-icons-png.flaticon.com/512/9187/9187604.png", // default "l" if not provided
+      platform: req.body.platform || "unknown",
+      imageUrl: req.body.imageUrl || "https://cdn-icons-png.flaticon.com/512/9187/9187604.png",
     });
 
     await user.save();
@@ -81,12 +80,13 @@ exports.createUser = async (req, res) => {
     res.status(201).json({
       success: true,
       message: "User created successfully",
-      error:null,
+      error: null,
       data: {
         userUUID: user.userUUID,
         name: user.name,
         email: user.email,
         mobileNumber: user.mobileNumber,
+        platform: user.platform,
         imageUrl: user.imageUrl,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
@@ -96,24 +96,45 @@ exports.createUser = async (req, res) => {
     let errorTitle = "User Creation Failed";
     let errorDescription = "An unexpected error occurred while creating the user.";
 
-    // Duplicate key error (MongoDB)
+    // ✅ Duplicate key error (MongoDB unique constraint)
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern).join(", ");
       errorTitle = "Duplicate Field Error";
-      errorDescription = `The value for '${field}' already exists. Please use a different one.`;
+
+      switch (field) {
+        case "email":
+          errorDescription = "The email address is already registered. Please use another.";
+          break;
+        case "mobileNumber":
+          errorDescription = "The mobile number is already registered. Please use another.";
+          break;
+        case "userUUID":
+          errorDescription = "The userUUID must be unique. Please generate a new one.";
+          break;
+        default:
+          errorDescription = `The value for '${field}' already exists.`;
+      }
     }
 
-    // Validation errors (Mongoose required fields, format, etc.)
+    // ✅ Validation errors (required fields missing or invalid)
     if (error.name === "ValidationError") {
       errorTitle = "Validation Error";
+
+      // Collect all validation issues
       errorDescription = Object.values(error.errors)
-        .map(err => err.message)
-        .join("; ");
+        .map(err => {
+          if (err.path === "name") return "Name is required.";
+          if (err.path === "email") return "Email is required.";
+          if (err.path === "mobileNumber") return "Mobile number is required.";
+          if (err.path === "userUUID") return "UserUUID is required.";
+          return err.message;
+        })
+        .join(" ");
     }
 
     res.status(400).json({
       success: false,
-      message: "User created successfully",
+      message: "User creation failed",
       data: null,
       error: {
         title: errorTitle,

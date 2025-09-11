@@ -13,6 +13,9 @@ app.use(cors());
 const userRoutes = require("./routes/userRoutes");
 app.use("/api/users", userRoutes);
 
+const uploadRoutes = require("./routes/uploadRoutes");
+app.use("/api/upload", uploadRoutes);
+
 // Connect MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
@@ -20,5 +23,4 @@ mongoose.connect(process.env.MONGO_URI)
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
-////eJ25dhMXA2D9ui2m
-//jibincherian892_db_user
+ 

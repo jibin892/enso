@@ -1,4 +1,5 @@
 const PaymentRequest = require("../models/PaymentRequest");
+const User = require("../models/User");
 
 // ✅ Create new payment request
 exports.createPaymentRequest = async (req, res) => {
@@ -43,19 +44,44 @@ exports.createPaymentRequest = async (req, res) => {
   }
 };
 
-// ✅ Get all payment requests for a user
+// ✅ Get all payment requests for a user (with sender & receiver details)
 exports.getPaymentRequests = async (req, res) => {
   try {
     const { userUUID } = req.params;
 
+    // 1️⃣ Fetch all requests involving this user
     const requests = await PaymentRequest.find({
       $or: [{ senderUserUUID: userUUID }, { receiverUserUUID: userUUID }]
     }).sort({ createdAt: -1 });
 
+    // 2️⃣ Enrich with user details
+    const enrichedRequests = await Promise.all(
+      requests.map(async (reqDoc) => {
+        const sender = await User.findOne({ userUUID: reqDoc.senderUserUUID }).select(
+          "userUUID name email mobileNumber platform imageUrl"
+        );
+        const receiver = await User.findOne({ userUUID: reqDoc.receiverUserUUID }).select(
+          "userUUID name email mobileNumber platform imageUrl"
+        );
+
+        return {
+          _id: reqDoc._id,
+          sender: sender || null,
+          receiver: receiver || null,
+          amount: reqDoc.amount,
+          currency: reqDoc.currency,
+          notes: reqDoc.notes,
+          status: reqDoc.status,
+          createdAt: reqDoc.createdAt,
+          updatedAt: reqDoc.updatedAt
+        };
+      })
+    );
+
     res.status(200).json({
       success: true,
       message: "Payment requests retrieved successfully",
-      data: requests
+      data: enrichedRequests
     });
   } catch (error) {
     res.status(500).json({
@@ -68,7 +94,6 @@ exports.getPaymentRequests = async (req, res) => {
     });
   }
 };
-
 // ✅ Update payment request status
 exports.updatePaymentRequestStatus = async (req, res) => {
   try {

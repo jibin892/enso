@@ -16,6 +16,9 @@ app.use("/api/users", userRoutes);
 const uploadRoutes = require("./routes/uploadRoutes");
 app.use("/api/upload", uploadRoutes);
 
+const notificationRoutes = require("./routes/onesignal");
+app.use("/api/notifications", notificationRoutes);
+
 // Connect MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))

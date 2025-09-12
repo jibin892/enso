@@ -50,7 +50,7 @@ exports.notifyUserByUUIDs = async (req, res) => {
 
     // 2️⃣ Build notification payload
     let payload = {
-      include_aliases: { external_id: [receiver.userUUID,senderUserUUID] }, // Only notify receiver
+      include_aliases: { external_id: [receiver.userUUID] }, // Only notify receiver
       target_channel: "push",
       data: {
         senderUserUUID: sender.userUUID,

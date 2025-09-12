@@ -1,10 +1,11 @@
 const { sendNotification } = require("../config/onesignal");
 const User = require("../models/User");
+const PaymentRequest = require("../models/PaymentRequest");
 
 // Send push notification from sender to receiver
- exports.notifyUserByUUIDs = async (req, res) => {
+exports.notifyUserByUUIDs = async (req, res) => {
   try {
-    const { senderUserUUID, receiverUserUUID, type, amount, notes } = req.body; // 👈 added notes
+    const { senderUserUUID, receiverUserUUID, type, amount, notes, currency } = req.body;
 
     if (!senderUserUUID || !receiverUserUUID || !type) {
       return res.status(400).json({
@@ -49,20 +50,47 @@ const User = require("../models/User");
 
     // 2️⃣ Build notification payload
     let payload = {
-      include_aliases: { external_id: [receiver.userUUID,senderUserUUID] },
+      include_aliases: { external_id: [receiver.userUUID] }, // Only notify receiver
       target_channel: "push",
       data: {
         senderUserUUID: sender.userUUID,
         receiverUserUUID: receiver.userUUID,
         type,
         amount: amount || null,
+        currency: currency || "INR",
         notes: notes || null
       },
       headings: { en: "New Notification" },
       contents: { en: "You have a new update 🚀" }
     };
 
-    // 3️⃣ Customize by type
+    // 3️⃣ If PAYMENT_REQUEST, create payment request in DB
+    let paymentRequest = null;
+
+    if (type === "PAYMENT_REQUEST") {
+      if (!amount) {
+        return res.status(400).json({
+          success: false,
+          message: "Amount required for payment request",
+          error: {
+            title: "Validation Error",
+            description: "Amount must be provided when type is PAYMENT_REQUEST"
+          }
+        });
+      }
+
+      paymentRequest = new PaymentRequest({
+        senderUserUUID,
+        receiverUserUUID,
+        amount,
+        currency: currency || "INR",
+        notes: notes || ""
+      });
+
+      await paymentRequest.save();
+    }
+
+    // 4️⃣ Customize notification by type
     switch (type) {
       case "PAYMENT_REQUEST":
         payload.headings.en = "Payment Request 💰";
@@ -108,13 +136,14 @@ const User = require("../models/User");
         if (notes) payload.contents.en += ` Note: ${notes}`;
     }
 
-    // 4️⃣ Send notification via OneSignal
+    // 5️⃣ Send notification via OneSignal
     const result = await sendNotification(payload);
 
     res.status(200).json({
       success: true,
       sender,
       receiver,
+      paymentRequest, // Include payment request if created
       payload,
       message: "Notification sent successfully",
       error: null,
@@ -131,4 +160,3 @@ const User = require("../models/User");
     });
   }
 };
-

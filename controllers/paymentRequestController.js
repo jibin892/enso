@@ -44,7 +44,7 @@ exports.createPaymentRequest = async (req, res) => {
   }
 };
 
-// ✅ Get all payment requests for a user (with sender & receiver details)
+// ✅ Get all payment requests for a user (with sender & receiver details + readable date)
 exports.getPaymentRequests = async (req, res) => {
   try {
     const { userUUID } = req.params;
@@ -54,7 +54,7 @@ exports.getPaymentRequests = async (req, res) => {
       $or: [{ senderUserUUID: userUUID }, { receiverUserUUID: userUUID }]
     }).sort({ createdAt: -1 });
 
-    // 2️⃣ Enrich with user details
+    // 2️⃣ Enrich with user details and readable date
     const enrichedRequests = await Promise.all(
       requests.map(async (reqDoc) => {
         const sender = await User.findOne({ userUUID: reqDoc.senderUserUUID }).select(
@@ -63,6 +63,16 @@ exports.getPaymentRequests = async (req, res) => {
         const receiver = await User.findOne({ userUUID: reqDoc.receiverUserUUID }).select(
           "userUUID name email mobileNumber platform imageUrl"
         );
+
+        // Format createdAt to human-readable
+        const humanReadableDate = new Date(reqDoc.createdAt).toLocaleString("en-IN", {
+          weekday: "short",
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit"
+        });
 
         return {
           _id: reqDoc._id,
@@ -73,7 +83,8 @@ exports.getPaymentRequests = async (req, res) => {
           notes: reqDoc.notes,
           status: reqDoc.status,
           createdAt: reqDoc.createdAt,
-          updatedAt: reqDoc.updatedAt
+          updatedAt: reqDoc.updatedAt,
+          readableDate: humanReadableDate // ✅ Added field
         };
       })
     );

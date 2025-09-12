@@ -11,4 +11,7 @@ router.get("/:userUUID", paymentRequestController.getPaymentRequests);
 // Update payment request status
 router.put("/:id/status", paymentRequestController.updatePaymentRequestStatus);
 
+
+router.put("/:id/decline", paymentRequestController.declinePaymentRequest);
+
 module.exports = router;

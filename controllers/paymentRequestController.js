@@ -51,7 +51,8 @@ exports.getPaymentRequests = async (req, res) => {
 
     // 1️⃣ Fetch all requests involving this user
     const requests = await PaymentRequest.find({
-      $or: [{ senderUserUUID: userUUID }, { receiverUserUUID: userUUID }]
+      $or: [ { receiverUserUUID: userUUID }],
+      status: { $ne: "DECLINED" }   // 👈 exclude declined
     }).sort({ createdAt: -1 });
 
     // 2️⃣ Enrich with user details and readable date
@@ -105,6 +106,60 @@ exports.getPaymentRequests = async (req, res) => {
     });
   }
 };
+
+// ✅ Decline a payment request
+exports.declinePaymentRequest = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const request = await PaymentRequest.findByIdAndUpdate(
+      id,
+      { status: "DECLINED" },
+      { new: true }
+    );
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment request not found",
+        error: {
+          title: "Not Found",
+          description: `No payment request found with ID: ${id}`
+        }
+      });
+    }
+
+    // Add human-readable date
+    const humanReadableDate = new Date(request.updatedAt).toLocaleString("en-IN", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Payment request declined successfully",
+      data: {
+        ...request.toObject(),
+        readableDate: humanReadableDate
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to decline payment request",
+      error: {
+        title: "Server Error",
+        description: error.message
+      }
+    });
+  }
+};
+
+
 // ✅ Update payment request status
 exports.updatePaymentRequestStatus = async (req, res) => {
   try {

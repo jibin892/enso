@@ -2,9 +2,9 @@ const { sendNotification } = require("../config/onesignal");
 const User = require("../models/User");
 
 // Send push notification from sender to receiver
-exports.notifyUserByUUIDs = async (req, res) => {
+ exports.notifyUserByUUIDs = async (req, res) => {
   try {
-    const { senderUserUUID, receiverUserUUID, type } = req.body;
+    const { senderUserUUID, receiverUserUUID, type, amount, notes } = req.body; // 👈 added notes
 
     if (!senderUserUUID || !receiverUserUUID || !type) {
       return res.status(400).json({
@@ -24,8 +24,8 @@ exports.notifyUserByUUIDs = async (req, res) => {
     if (!receiver) {
       return res.status(404).json({
         success: false,
-        sender:sender,
-        receiver:receiver,
+        sender,
+        receiver,
         message: "Receiver not found",
         error: {
           title: "Not Found",
@@ -37,9 +37,9 @@ exports.notifyUserByUUIDs = async (req, res) => {
     if (!sender) {
       return res.status(404).json({
         success: false,
+        sender,
+        receiver,
         message: "Sender not found",
-          sender:sender,
-        receiver:receiver,
         error: {
           title: "Not Found",
           description: `No user found with UUID: ${senderUserUUID}`
@@ -47,36 +47,44 @@ exports.notifyUserByUUIDs = async (req, res) => {
       });
     }
 
-    // 2️⃣ Build notification payload based on type
+    // 2️⃣ Build notification payload
     let payload = {
       include_aliases: { external_id: [receiver.userUUID,senderUserUUID] },
       target_channel: "push",
       data: {
         senderUserUUID: sender.userUUID,
         receiverUserUUID: receiver.userUUID,
-        type
+        type,
+        amount: amount || null,
+        notes: notes || null
       },
       headings: { en: "New Notification" },
       contents: { en: "You have a new update 🚀" }
     };
 
+    // 3️⃣ Customize by type
     switch (type) {
-     case "PAYMENT_REQUEST":
-    payload.headings.en = "Payment Request 💰";
-    payload.contents.en = `${sender.name} has requested a payment from you. Please review and complete the transaction.`;
-    payload.data.paymentType = "REQUEST";
-    break;
+      case "PAYMENT_REQUEST":
+        payload.headings.en = "Payment Request 💰";
+        payload.contents.en = amount
+          ? `${sender.name} has requested a payment of ₹${amount} from you.`
+          : `${sender.name} has requested a payment from you.`;
+        if (notes) payload.contents.en += ` Note: ${notes}`;
+        payload.data.paymentType = "REQUEST";
+        break;
 
-  case "PAYMENT_RECEIPT":
-    payload.headings.en = "Payment Received ✅";
-    payload.contents.en = `Your payment to ${sender.name} has been received successfully. Thank you!`;
-    payload.data.paymentType = "RECEIPT";
-    break;
-
+      case "PAYMENT_RECEIPT":
+        payload.headings.en = "Payment Received ✅";
+        payload.contents.en = amount
+          ? `Your payment of ₹${amount} to ${sender.name} has been received successfully.`
+          : `Your payment to ${sender.name} has been received successfully.`;
+        if (notes) payload.contents.en += ` Note: ${notes}`;
+        payload.data.paymentType = "RECEIPT";
+        break;
 
       case "MESSAGE":
         payload.headings.en = `New message from ${sender.name}`;
-        payload.contents.en = `${sender.name} sent you a message.`;
+        payload.contents.en = notes || `${sender.name} sent you a message.`;
         break;
 
       case "INVITE":
@@ -92,20 +100,22 @@ exports.notifyUserByUUIDs = async (req, res) => {
       case "ALERT":
         payload.headings.en = "Important Alert ⚡";
         payload.contents.en = `${sender.name} sent you an urgent update.`;
+        if (notes) payload.contents.en += ` Note: ${notes}`;
         break;
 
       default:
         payload.contents.en = `Hi ${receiver.name}, you got a new notification from ${sender.name}.`;
+        if (notes) payload.contents.en += ` Note: ${notes}`;
     }
 
-    // 3️⃣ Send notification via OneSignal
+    // 4️⃣ Send notification via OneSignal
     const result = await sendNotification(payload);
 
     res.status(200).json({
       success: true,
-         sender:sender,
-        receiver:receiver,
-        payload:payload,
+      sender,
+      receiver,
+      payload,
       message: "Notification sent successfully",
       error: null,
       data: result
@@ -113,9 +123,6 @@ exports.notifyUserByUUIDs = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
-        sender:sender,
-        receiver:receiver,
-        payload:payload,
       message: "Failed to send notification",
       error: {
         title: "OneSignal Error",
@@ -124,3 +131,4 @@ exports.notifyUserByUUIDs = async (req, res) => {
     });
   }
 };
+

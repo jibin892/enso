@@ -24,6 +24,8 @@ exports.notifyUserByUUIDs = async (req, res) => {
     if (!receiver) {
       return res.status(404).json({
         success: false,
+        sender:sender,
+        receiver:receiver,
         message: "Receiver not found",
         error: {
           title: "Not Found",
@@ -36,6 +38,8 @@ exports.notifyUserByUUIDs = async (req, res) => {
       return res.status(404).json({
         success: false,
         message: "Sender not found",
+          sender:sender,
+        receiver:receiver,
         error: {
           title: "Not Found",
           description: `No user found with UUID: ${senderUserUUID}`
@@ -45,7 +49,7 @@ exports.notifyUserByUUIDs = async (req, res) => {
 
     // 2️⃣ Build notification payload based on type
     let payload = {
-      include_aliases: { external_id: [receiver.userUUID] },
+      include_aliases: { external_id: [receiver.userUUID,senderUserUUID] },
       target_channel: "push",
       data: {
         senderUserUUID: sender.userUUID,
@@ -99,6 +103,9 @@ exports.notifyUserByUUIDs = async (req, res) => {
 
     res.status(200).json({
       success: true,
+         sender:sender,
+        receiver:receiver,
+        payload:payload,
       message: "Notification sent successfully",
       error: null,
       data: result
@@ -106,6 +113,9 @@ exports.notifyUserByUUIDs = async (req, res) => {
   } catch (error) {
     res.status(500).json({
       success: false,
+        sender:sender,
+        receiver:receiver,
+        payload:payload,
       message: "Failed to send notification",
       error: {
         title: "OneSignal Error",

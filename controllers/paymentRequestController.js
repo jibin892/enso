@@ -52,7 +52,7 @@ exports.getPaymentRequests = async (req, res) => {
     // 1️⃣ Fetch all requests involving this user
     const requests = await PaymentRequest.find({
       $or: [ { receiverUserUUID: userUUID }],
-      status: { $ne:["DECLINED", "PAID"]  }   // 👈 exclude declined
+      status: { $nin: ["DECLINED", "PAID"] } // ✅ must use $nin
     }).sort({ createdAt: -1 });
 
     // 2️⃣ Enrich with user details and readable date

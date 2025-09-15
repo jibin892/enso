@@ -280,6 +280,7 @@ exports.getPaymentRequestById = async (req, res) => {
           currency: p.currency,
           notes: p.notes,
           status: p.status,
+          markAsFriendCredit: p.markAsFriendCredit, // ✅ Added here
           readableDate: new Date(p.createdAt).toLocaleString("en-IN", {
             weekday: "short",
             year: "numeric",
@@ -304,11 +305,13 @@ exports.getPaymentRequestById = async (req, res) => {
         currency: reqDoc.currency,
         notes: reqDoc.notes,
         status: reqDoc.status,
+        markAsFriendCredit: reqDoc.markAsFriendCredit, // ✅ Already present
         createdAt: reqDoc.createdAt,
         updatedAt: reqDoc.updatedAt,
-        markAsFriendCredit:reqDoc.markAsFriendCredit,
         readableDate: humanReadableDate,
-        previousRequests: enrichedPrevious.filter((p) => p._id.toString() !== reqDoc._id.toString()) // ✅ Added history
+        previousRequests: enrichedPrevious.filter(
+          (p) => p._id.toString() !== reqDoc._id.toString()
+        )
       }
     });
   } catch (error) {
@@ -323,8 +326,6 @@ exports.getPaymentRequestById = async (req, res) => {
   }
 };
 
-
- 
 // helper to generate random transaction IDs
 function generateTransactionId() {
   return "TXN_" + Math.random().toString(36).substr(2, 9).toUpperCase();

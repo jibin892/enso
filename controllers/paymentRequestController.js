@@ -326,28 +326,33 @@ exports.getPaymentRequestById = async (req, res) => {
   }
 };
 
-// helper to generate random transaction IDs
+// Utility to generate unique transaction IDs
 function generateTransactionId() {
-  return "TXN_" + Math.random().toString(36).substr(2, 9).toUpperCase();
+  const prefix = "TXN";
+  const timestamp = Date.now().toString(36); // base36 timestamp
+  const randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();
+  return `${prefix}-${timestamp}-${randomPart}`;
 }
 
 // ✅ Mark a payment request as PAID by ObjectId
 exports.markPaymentRequestPaid = async (req, res) => {
   try {
     const { id } = req.params;
-    const { transactionId, method, paidAt, markAsFriendCredit } = req.body; // 👈 added param
+    const { markAsFriendCredit } = req.body; // 👈 only optional param from client
 
-    // generate random ID if not provided
-    const finalTransactionId = transactionId || generateTransactionId();
+    // Server generates these automatically
+    const finalTransactionId = generateTransactionId();
+    const finalMethod = "UPI"; // 👈 or "FRIEND_CREDIT" if markAsFriendCredit = true
+    const finalPaidAt = new Date();
 
     const request = await PaymentRequest.findByIdAndUpdate(
       id,
       {
         status: "PAID",
         transactionId: finalTransactionId,
-        paymentMethod: method || "UPI", // 👈 default UPI
-        paidAt: paidAt || new Date(),
-        markAsFriendCredit: markAsFriendCredit === true // store boolean safely
+        paymentMethod: finalMethod,
+        paidAt: finalPaidAt,
+        markAsFriendCredit: markAsFriendCredit === true
       },
       { new: true }
     );
@@ -363,8 +368,8 @@ exports.markPaymentRequestPaid = async (req, res) => {
       });
     }
 
-    // make human readable
-    const humanReadableDate = new Date(request.updatedAt).toLocaleString("en-IN", {
+    // Human-readable timestamp
+    const humanReadableDate = new Date(request.paidAt).toLocaleString("en-IN", {
       weekday: "short",
       year: "numeric",
       month: "short",

@@ -14,4 +14,8 @@ router.put("/:id/status", paymentRequestController.updatePaymentRequestStatus);
 
 router.put("/:id/decline", paymentRequestController.declinePaymentRequest);
 
+
+// New route for single request
+router.get("/detail/:id", paymentRequestController.getPaymentRequestById);
+
 module.exports = router;

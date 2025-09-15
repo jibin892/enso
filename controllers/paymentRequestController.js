@@ -210,3 +210,73 @@ exports.updatePaymentRequestStatus = async (req, res) => {
     });
   }
 };
+
+
+// ✅ Get a single payment request by ID (with sender & receiver details + readable date)
+exports.getPaymentRequestById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    // 1️⃣ Fetch the request by ID (excluding declined if needed)
+    const reqDoc = await PaymentRequest.findOne({
+      _id: id,
+      status: { $ne: "DECLINED" }  // exclude declined
+    });
+
+    if (!reqDoc) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment request not found",
+        error: {
+          title: "Not Found",
+          description: `No active payment request found with ID: ${id}`
+        }
+      });
+    }
+
+    // 2️⃣ Get sender and receiver details
+    const sender = await User.findOne({ userUUID: reqDoc.senderUserUUID }).select(
+      "userUUID name email mobileNumber platform imageUrl"
+    );
+    const receiver = await User.findOne({ userUUID: reqDoc.receiverUserUUID }).select(
+      "userUUID name email mobileNumber platform imageUrl"
+    );
+
+    // 3️⃣ Format createdAt to human-readable
+    const humanReadableDate = new Date(reqDoc.createdAt).toLocaleString("en-IN", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    // 4️⃣ Return enriched request
+    res.status(200).json({
+      success: true,
+      message: "Payment request retrieved successfully",
+      data: {
+        _id: reqDoc._id,
+        sender: sender || null,
+        receiver: receiver || null,
+        amount: reqDoc.amount,
+        currency: reqDoc.currency,
+        notes: reqDoc.notes,
+        status: reqDoc.status,
+        createdAt: reqDoc.createdAt,
+        updatedAt: reqDoc.updatedAt,
+        readableDate: humanReadableDate
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch payment request",
+      error: {
+        title: "Server Error",
+        description: error.message
+      }
+    });
+  }
+};

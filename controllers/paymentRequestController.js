@@ -306,8 +306,9 @@ exports.getPaymentRequestById = async (req, res) => {
         status: reqDoc.status,
         createdAt: reqDoc.createdAt,
         updatedAt: reqDoc.updatedAt,
+        markAsFriendCredit:reqDoc.markAsFriendCredit,
         readableDate: humanReadableDate,
-        previousRequests: enrichedPrevious // ✅ Added history
+        previousRequests: enrichedPrevious.filter((p) => p._id.toString() !== reqDoc._id.toString()) // ✅ Added history
       }
     });
   } catch (error) {
@@ -333,7 +334,7 @@ function generateTransactionId() {
 exports.markPaymentRequestPaid = async (req, res) => {
   try {
     const { id } = req.params;
-    const { transactionId, method, paidAt } = req.body; // optional input
+    const { transactionId, method, paidAt, markAsFriendCredit } = req.body; // 👈 added param
 
     // generate random ID if not provided
     const finalTransactionId = transactionId || generateTransactionId();
@@ -344,7 +345,8 @@ exports.markPaymentRequestPaid = async (req, res) => {
         status: "PAID",
         transactionId: finalTransactionId,
         paymentMethod: method || "UPI", // 👈 default UPI
-        paidAt: paidAt || new Date()
+        paidAt: paidAt || new Date(),
+        markAsFriendCredit: markAsFriendCredit === true // store boolean safely
       },
       { new: true }
     );
@@ -389,4 +391,3 @@ exports.markPaymentRequestPaid = async (req, res) => {
     });
   }
 };
- 

@@ -16,7 +16,9 @@ const paymentRequestSchema = new mongoose.Schema(
     updatedAt: { type: Date, default: Date.now },
     transactionId: { type: String, default: null },
     paymentMethod: { type: String, default: null },
-    paidAt: { type: Date, default: null }
+    paidAt: { type: Date, default: null },
+    markAsFriendCredit: { type: Boolean, default: false }
+
   },
   { timestamps: true }
 );

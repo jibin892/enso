@@ -212,15 +212,17 @@ exports.updatePaymentRequestStatus = async (req, res) => {
 };
 
 
-// ✅ Get a single payment request by ID (with sender & receiver details + readable date)
+ 
+
+// ✅ Get a single payment request by ID (with sender & receiver details + history + readable date)
 exports.getPaymentRequestById = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // 1️⃣ Fetch the request by ID (excluding declined if needed)
+    // 1️⃣ Fetch the request by ID
     const reqDoc = await PaymentRequest.findOne({
       _id: id,
-      status: { $ne: "DECLINED" }  // exclude declined
+      status: { $ne: "DECLINED" } // exclude declined
     });
 
     if (!reqDoc) {
@@ -252,7 +254,45 @@ exports.getPaymentRequestById = async (req, res) => {
       minute: "2-digit"
     });
 
-    // 4️⃣ Return enriched request
+    // 4️⃣ Fetch previous payment requests between same sender & receiver
+    const previousRequests = await PaymentRequest.find({
+      _id: { $ne: reqDoc._id }, // exclude current request
+      $or: [
+        { senderUserUUID: reqDoc.senderUserUUID, receiverUserUUID: reqDoc.receiverUserUUID },
+        { senderUserUUID: reqDoc.receiverUserUUID, receiverUserUUID: reqDoc.senderUserUUID }
+      ],
+      status: { $ne: "DECLINED" }
+    }).sort({ createdAt: -1 });
+
+    const enrichedPrevious = await Promise.all(
+      previousRequests.map(async (p) => {
+        const pSender = await User.findOne({ userUUID: p.senderUserUUID }).select(
+          "userUUID name email mobileNumber platform imageUrl"
+        );
+        const pReceiver = await User.findOne({ userUUID: p.receiverUserUUID }).select(
+          "userUUID name email mobileNumber platform imageUrl"
+        );
+        return {
+          _id: p._id,
+          sender: pSender || null,
+          receiver: pReceiver || null,
+          amount: p.amount,
+          currency: p.currency,
+          notes: p.notes,
+          status: p.status,
+          readableDate: new Date(p.createdAt).toLocaleString("en-IN", {
+            weekday: "short",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+          })
+        };
+      })
+    );
+
+    // 5️⃣ Return enriched current request + history
     res.status(200).json({
       success: true,
       message: "Payment request retrieved successfully",
@@ -266,7 +306,8 @@ exports.getPaymentRequestById = async (req, res) => {
         status: reqDoc.status,
         createdAt: reqDoc.createdAt,
         updatedAt: reqDoc.updatedAt,
-        readableDate: humanReadableDate
+        readableDate: humanReadableDate,
+        previousRequests: enrichedPrevious // ✅ Added history
       }
     });
   } catch (error) {

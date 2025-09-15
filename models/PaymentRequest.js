@@ -13,7 +13,10 @@ const paymentRequestSchema = new mongoose.Schema(
       default: "PENDING" 
     }, // payment request lifecycle
     createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
+    updatedAt: { type: Date, default: Date.now },
+    transactionId: { type: String, default: null },
+    paymentMethod: { type: String, default: null },
+    paidAt: { type: Date, default: null }
   },
   { timestamps: true }
 );

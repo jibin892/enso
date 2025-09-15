@@ -321,3 +321,72 @@ exports.getPaymentRequestById = async (req, res) => {
     });
   }
 };
+
+
+ 
+// helper to generate random transaction IDs
+function generateTransactionId() {
+  return "TXN_" + Math.random().toString(36).substr(2, 9).toUpperCase();
+}
+
+// ✅ Mark a payment request as PAID by ObjectId
+exports.markPaymentRequestPaid = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { transactionId, method, paidAt } = req.body; // optional input
+
+    // generate random ID if not provided
+    const finalTransactionId = transactionId || generateTransactionId();
+
+    const request = await PaymentRequest.findByIdAndUpdate(
+      id,
+      {
+        status: "PAID",
+        transactionId: finalTransactionId,
+        paymentMethod: method || "UPI", // 👈 default UPI
+        paidAt: paidAt || new Date()
+      },
+      { new: true }
+    );
+
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment request not found",
+        error: {
+          title: "Not Found",
+          description: `No payment request found with ID: ${id}`
+        }
+      });
+    }
+
+    // make human readable
+    const humanReadableDate = new Date(request.updatedAt).toLocaleString("en-IN", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "Payment request marked as PAID successfully",
+      data: {
+        ...request.toObject(),
+        readableDate: humanReadableDate
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to mark payment as PAID",
+      error: {
+        title: "Server Error",
+        description: error.message
+      }
+    });
+  }
+};
+ 

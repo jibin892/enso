@@ -213,8 +213,7 @@ exports.updatePaymentRequestStatus = async (req, res) => {
 
 
  
-
-// ✅ Get a single payment request by ID (with sender & receiver details + history + readable date)
+// ✅ Get a single payment request by ID (with sender & receiver details + history + readable date + repayments)
 exports.getPaymentRequestById = async (req, res) => {
   try {
     const { id } = req.params;
@@ -223,7 +222,7 @@ exports.getPaymentRequestById = async (req, res) => {
     // 1️⃣ Fetch the request by ID
     const reqDoc = await PaymentRequest.findOne({
       _id: id,
-      status: { $ne: "DECLINED" } // exclude declined
+      status: { $ne: "DECLINED" }
     });
 
     if (!reqDoc) {
@@ -281,6 +280,22 @@ exports.getPaymentRequestById = async (req, res) => {
           else if (p.receiverUserUUID === userUUID) role = "RECEIVER";
         }
 
+        // 👇 Add repayments for this previous request
+        const enrichedRepayments = (p.repayments || []).map((r) => ({
+          amount: r.amount,
+          balanceRemaining: r.balanceRemaining,
+          notes: r.notes,
+          repaidAt: r.repaidAt,
+          readableDate: new Date(r.repaidAt).toLocaleString("en-IN", {
+            weekday: "short",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+          })
+        }));
+
         return {
           _id: p._id,
           sender: pSender || null,
@@ -290,11 +305,10 @@ exports.getPaymentRequestById = async (req, res) => {
           notes: p.notes,
           status: p.status,
           markAsFriendCredit: p.markAsFriendCredit,
-          role, // ✅ always included
-          userUUID :userUUID,
+          role,
+          userUUID,
           createdAt: p.createdAt,
           updatedAt: p.updatedAt,
-        
           readableDate: new Date(p.createdAt).toLocaleString("en-IN", {
             weekday: "short",
             year: "numeric",
@@ -302,12 +316,29 @@ exports.getPaymentRequestById = async (req, res) => {
             day: "numeric",
             hour: "2-digit",
             minute: "2-digit"
-          })
+          }),
+          repayments: enrichedRepayments // ✅ Added repayments inside previousRequests
         };
       })
     );
 
-    // 5️⃣ Return enriched current request + history
+    // 5️⃣ Enrich repayments for current request
+    const enrichedRepayments = (reqDoc.repayments || []).map((r) => ({
+      amount: r.amount,
+      balanceRemaining: r.balanceRemaining,
+      notes: r.notes,
+      repaidAt: r.repaidAt,
+      readableDate: new Date(r.repaidAt).toLocaleString("en-IN", {
+        weekday: "short",
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit"
+      })
+    }));
+
+    // 6️⃣ Return enriched current request + history
     res.status(200).json({
       success: true,
       message: "Payment request retrieved successfully",
@@ -323,15 +354,16 @@ exports.getPaymentRequestById = async (req, res) => {
         createdAt: reqDoc.createdAt,
         updatedAt: reqDoc.updatedAt,
         readableDate: humanReadableDate,
-        userUUID :userUUID,
+        userUUID,
         role: userUUID
           ? reqDoc.senderUserUUID === userUUID
             ? "SENDER"
             : reqDoc.receiverUserUUID === userUUID
             ? "RECEIVER"
             : null
-          : null, // ✅ role for current request
-        previousRequests: enrichedPrevious
+          : null,
+        repayments: enrichedRepayments, // ✅ repayments for current
+        previousRequests: enrichedPrevious // ✅ with repayments included
       }
     });
   } catch (error) {
@@ -345,7 +377,6 @@ exports.getPaymentRequestById = async (req, res) => {
     });
   }
 };
-
 
 // Utility to generate unique transaction IDs
 function generateTransactionId() {
@@ -421,3 +452,73 @@ exports.markPaymentRequestPaid = async (req, res) => {
 
 
 
+// ✅ Update repayment for a payment request
+exports.addRepayment = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { amount, repaidAt, notes } = req.body;
+
+    if (!amount || amount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid repayment amount",
+        error: {
+          title: "Validation Error",
+          description: "Repayment amount must be greater than 0"
+        }
+      });
+    }
+
+    // Find the payment request
+    const request = await PaymentRequest.findById(id);
+    if (!request) {
+      return res.status(404).json({
+        success: false,
+        message: "Payment request not found",
+        error: {
+          title: "Not Found",
+          description: `No payment request found with ID: ${id}`
+        }
+      });
+    }
+
+    // Calculate balance
+    const totalRepaid = request.repayments.reduce((sum, r) => sum + r.amount, 0);
+    const newBalance = request.amount - (totalRepaid + amount);
+
+    // Add repayment
+    const repaymentEntry = {
+      amount,
+      repaidAt: repaidAt || new Date(),
+      balanceRemaining: newBalance,
+      notes: notes || ""
+    };
+    request.repayments.push(repaymentEntry);
+
+    // If fully repaid, mark as PAID
+    if (newBalance <= 0) {
+      request.status = "PAID";
+      request.paidAt = new Date();
+    }
+
+    await request.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Repayment added successfully",
+      data: {
+        ...request.toObject(),
+        latestRepayment: repaymentEntry
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to add repayment",
+      error: {
+        title: "Server Error",
+        description: error.message
+      }
+    });
+  }
+};

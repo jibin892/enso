@@ -1,5 +1,12 @@
 const mongoose = require("mongoose");
 
+const repaymentSchema = new mongoose.Schema({
+  amount: { type: Number, required: true },
+  repaidAt: { type: Date, default: Date.now },
+  balanceRemaining: { type: Number, required: true },
+  notes: { type: String, default: "" }
+});
+
 const paymentRequestSchema = new mongoose.Schema(
   {
     senderUserUUID: { type: String, required: true },   // UUID of the user requesting payment
@@ -17,7 +24,8 @@ const paymentRequestSchema = new mongoose.Schema(
     transactionId: { type: String, default: null },
     paymentMethod: { type: String, default: null },
     paidAt: { type: Date, default: null },
-    markAsFriendCredit: { type: Boolean, default: false }
+    markAsFriendCredit: { type: Boolean, default: false },
+     repayments: [repaymentSchema] // 👈 New field
 
   },
   { timestamps: true }

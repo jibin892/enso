@@ -21,4 +21,8 @@ router.get("/detail/:id", paymentRequestController.getPaymentRequestById);
 // ✅ New paid route
 router.post("/paid/:id", paymentRequestController.markPaymentRequestPaid);
 
+// Existing routes...
+router.post("/repay/:id", paymentRequestController.addRepayment); // 👈 New route
+
+
 module.exports = router;

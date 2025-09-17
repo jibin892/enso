@@ -9,7 +9,7 @@ const paymentRequestSchema = new mongoose.Schema(
     notes: { type: String, default: "" },               // optional additional note
     status: { 
       type: String, 
-      enum: ["PENDING", "PAID", "DECLINED"], 
+      enum: ["PENDING", "PAID", "DECLINED","RE_PAID"], 
       default: "PENDING" 
     }, // payment request lifecycle
     createdAt: { type: Date, default: Date.now },

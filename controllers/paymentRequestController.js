@@ -214,11 +214,11 @@ exports.updatePaymentRequestStatus = async (req, res) => {
 
  
 
-  // ✅ Get a single payment request by ID (with sender & receiver details + history + readable date)
+// ✅ Get a single payment request by ID (with sender & receiver details + history + readable date)
 exports.getPaymentRequestById = async (req, res) => {
   try {
     const { id } = req.params;
-    const { userUUID } = req.query; // 👈 pass userUUID as query param
+    const { userUUID } = req.query; // 👈 logged-in user UUID passed as query
 
     // 1️⃣ Fetch the request by ID
     const reqDoc = await PaymentRequest.findOne({
@@ -274,7 +274,7 @@ exports.getPaymentRequestById = async (req, res) => {
           "userUUID name email mobileNumber platform imageUrl"
         );
 
-        // role based on current userUUID
+        // role of current logged-in user in this previous request
         let role = null;
         if (userUUID) {
           if (p.senderUserUUID === userUUID) role = "SENDER";
@@ -290,7 +290,9 @@ exports.getPaymentRequestById = async (req, res) => {
           notes: p.notes,
           status: p.status,
           markAsFriendCredit: p.markAsFriendCredit,
-          role, // 👈 added identifying key
+          role, // ✅ always included
+          createdAt: p.createdAt,
+          updatedAt: p.updatedAt,
           readableDate: new Date(p.createdAt).toLocaleString("en-IN", {
             weekday: "short",
             year: "numeric",
@@ -325,10 +327,8 @@ exports.getPaymentRequestById = async (req, res) => {
             : reqDoc.receiverUserUUID === userUUID
             ? "RECEIVER"
             : null
-          : null, // 👈 current request role
-        previousRequests: enrichedPrevious.filter(
-          (p) => p._id.toString() !== reqDoc._id.toString()
-        )
+          : null, // ✅ role for current request
+        previousRequests: enrichedPrevious
       }
     });
   } catch (error) {

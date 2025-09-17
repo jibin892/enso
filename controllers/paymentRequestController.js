@@ -338,8 +338,8 @@ function generateTransactionId() {
 exports.markPaymentRequestPaid = async (req, res) => {
   try {
     const { id } = req.params;
-    const { markAsFriendCredit } = req.body; // 👈 only optional param from client
-
+    const { markAsFriendCredit } = req.body || {}; // 👈 safe fallback
+    
     // Server generates these automatically
     const finalTransactionId = generateTransactionId();
     const finalMethod = "UPI"; // 👈 or "FRIEND_CREDIT" if markAsFriendCredit = true
@@ -397,3 +397,6 @@ exports.markPaymentRequestPaid = async (req, res) => {
     });
   }
 };
+
+
+

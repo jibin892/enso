@@ -8,6 +8,7 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(cors());
+app.use(express.urlencoded({ extended: true })); // ✅ Parse form data
 
 // Routes
 const userRoutes = require("./routes/userRoutes");

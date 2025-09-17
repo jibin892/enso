@@ -522,3 +522,103 @@ exports.markPaymentRequestPaid = async (req, res) => {
     });
   }
 };
+
+
+
+// ✅ Get all payment requests for a user (sender or receiver) with enriched details
+exports.getAllUserPaymentRequests = async (req, res) => {
+  try {
+    const { userUUID } = req.params; // 👈 pass userUUID in route
+
+    // 1️⃣ Fetch all requests where user is either sender or receiver
+    const requests = await PaymentRequest.find({
+      $or: [
+        { senderUserUUID: userUUID },
+        { receiverUserUUID: userUUID }
+      ],
+      status: { $nin: ["DECLINED"] } // exclude declined
+    }).sort({ createdAt: -1 });
+
+    if (!requests || requests.length === 0) {
+      return res.status(200).json({
+        success: true,
+        message: "No active payment requests found",
+        data: []
+      });
+    }
+
+    // 2️⃣ Enrich each request
+    const enrichedRequests = await Promise.all(
+      requests.map(async (reqDoc) => {
+        const sender = await User.findOne({ userUUID: reqDoc.senderUserUUID }).select(
+          "userUUID name email mobileNumber platform imageUrl"
+        );
+        const receiver = await User.findOne({ userUUID: reqDoc.receiverUserUUID }).select(
+          "userUUID name email mobileNumber platform imageUrl"
+        );
+
+        // role for this user
+        let role = null;
+        if (userUUID) {
+          if (reqDoc.senderUserUUID === userUUID) role = "SENDER";
+          else if (reqDoc.receiverUserUUID === userUUID) role = "RECEIVER";
+        }
+
+        // repayments list
+        const enrichedRepayments = (reqDoc.repayments || []).map((r) => ({
+          amount: r.amount,
+          balanceRemaining: r.balanceRemaining,
+          notes: r.notes,
+          repaidAt: r.repaidAt,
+          readableDate: new Date(r.repaidAt).toLocaleString("en-IN", {
+            weekday: "short",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+          })
+        }));
+
+        return {
+          _id: reqDoc._id,
+          sender: sender || null,
+          receiver: receiver || null,
+          amount: reqDoc.amount,
+          currency: reqDoc.currency,
+          notes: reqDoc.notes,
+          status: reqDoc.status,
+          markAsFriendCredit: reqDoc.markAsFriendCredit,
+          role,
+          requestUserUUID: userUUID, // 👈 identifies caller
+          createdAt: reqDoc.createdAt,
+          updatedAt: reqDoc.updatedAt,
+          readableDate: new Date(reqDoc.createdAt).toLocaleString("en-IN", {
+            weekday: "short",
+            year: "numeric",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit"
+          }),
+          repayments: enrichedRepayments
+        };
+      })
+    );
+
+    res.status(200).json({
+      success: true,
+      message: "Payment requests retrieved successfully",
+      data: enrichedRequests
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch payment requests",
+      error: {
+        title: "Server Error",
+        description: error.message
+      }
+    });
+  }
+};

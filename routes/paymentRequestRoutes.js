@@ -25,4 +25,8 @@ router.post("/paid/:id", paymentRequestController.markPaymentRequestPaid);
 router.post("/repay/:id", paymentRequestController.addRepayment); // 👈 New route
 
 
+// ✅ New route to fetch all requests for a user
+router.get("/user/:userUUID", paymentRequestController.getAllUserPaymentRequests);
+
+
 module.exports = router;

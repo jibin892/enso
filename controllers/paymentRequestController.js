@@ -214,10 +214,11 @@ exports.updatePaymentRequestStatus = async (req, res) => {
 
  
 
-// ✅ Get a single payment request by ID (with sender & receiver details + history + readable date)
+  // ✅ Get a single payment request by ID (with sender & receiver details + history + readable date)
 exports.getPaymentRequestById = async (req, res) => {
   try {
     const { id } = req.params;
+    const { userUUID } = req.query; // 👈 pass userUUID as query param
 
     // 1️⃣ Fetch the request by ID
     const reqDoc = await PaymentRequest.findOne({
@@ -256,7 +257,7 @@ exports.getPaymentRequestById = async (req, res) => {
 
     // 4️⃣ Fetch previous payment requests between same sender & receiver
     const previousRequests = await PaymentRequest.find({
-      _id: { $ne: reqDoc._id }, // exclude current request
+      _id: { $ne: reqDoc._id },
       $or: [
         { senderUserUUID: reqDoc.senderUserUUID, receiverUserUUID: reqDoc.receiverUserUUID },
         { senderUserUUID: reqDoc.receiverUserUUID, receiverUserUUID: reqDoc.senderUserUUID }
@@ -272,6 +273,14 @@ exports.getPaymentRequestById = async (req, res) => {
         const pReceiver = await User.findOne({ userUUID: p.receiverUserUUID }).select(
           "userUUID name email mobileNumber platform imageUrl"
         );
+
+        // role based on current userUUID
+        let role = null;
+        if (userUUID) {
+          if (p.senderUserUUID === userUUID) role = "SENDER";
+          else if (p.receiverUserUUID === userUUID) role = "RECEIVER";
+        }
+
         return {
           _id: p._id,
           sender: pSender || null,
@@ -280,7 +289,8 @@ exports.getPaymentRequestById = async (req, res) => {
           currency: p.currency,
           notes: p.notes,
           status: p.status,
-          markAsFriendCredit: p.markAsFriendCredit, // ✅ Added here
+          markAsFriendCredit: p.markAsFriendCredit,
+          role, // 👈 added identifying key
           readableDate: new Date(p.createdAt).toLocaleString("en-IN", {
             weekday: "short",
             year: "numeric",
@@ -305,10 +315,17 @@ exports.getPaymentRequestById = async (req, res) => {
         currency: reqDoc.currency,
         notes: reqDoc.notes,
         status: reqDoc.status,
-        markAsFriendCredit: reqDoc.markAsFriendCredit, // ✅ Already present
+        markAsFriendCredit: reqDoc.markAsFriendCredit,
         createdAt: reqDoc.createdAt,
         updatedAt: reqDoc.updatedAt,
         readableDate: humanReadableDate,
+        role: userUUID
+          ? reqDoc.senderUserUUID === userUUID
+            ? "SENDER"
+            : reqDoc.receiverUserUUID === userUUID
+            ? "RECEIVER"
+            : null
+          : null, // 👈 current request role
         previousRequests: enrichedPrevious.filter(
           (p) => p._id.toString() !== reqDoc._id.toString()
         )
@@ -325,6 +342,7 @@ exports.getPaymentRequestById = async (req, res) => {
     });
   }
 };
+
 
 // Utility to generate unique transaction IDs
 function generateTransactionId() {

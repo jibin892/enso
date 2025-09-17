@@ -291,8 +291,10 @@ exports.getPaymentRequestById = async (req, res) => {
           status: p.status,
           markAsFriendCredit: p.markAsFriendCredit,
           role, // ✅ always included
+          userUUID :userUUID,
           createdAt: p.createdAt,
           updatedAt: p.updatedAt,
+        
           readableDate: new Date(p.createdAt).toLocaleString("en-IN", {
             weekday: "short",
             year: "numeric",
@@ -321,6 +323,7 @@ exports.getPaymentRequestById = async (req, res) => {
         createdAt: reqDoc.createdAt,
         updatedAt: reqDoc.updatedAt,
         readableDate: humanReadableDate,
+        userUUID :userUUID,
         role: userUUID
           ? reqDoc.senderUserUUID === userUUID
             ? "SENDER"

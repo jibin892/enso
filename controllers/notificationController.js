@@ -86,6 +86,16 @@ exports.notifyUserByUUIDs = async (req, res) => {
         payload.data.paymentType = "REQUEST";
         break;
 
+  
+      case "PAYMENT_REMINDER":
+    payload.headings.en = "Payment Reminder ⏰";
+    payload.contents.en = amount
+      ? `Reminder: You still owe ₹${amount} to ${sender.name}.`
+      : `Reminder: You have a pending payment to ${sender.name}.`;
+    if (notes) payload.contents.en += ` Note: ${notes}`;
+    payload.data.paymentType = "REMINDER";
+    break;
+
       case "PAYMENT_RECEIPT":
         payload.headings.en = "Payment Received ✅";
         payload.contents.en = `Your payment of ₹${amount} to ${sender.name} was successful.`;

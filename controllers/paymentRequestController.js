@@ -453,10 +453,10 @@ exports.markPaymentRequestPaid = async (req, res) => {
 
 
 // ✅ Update repayment for a payment request
-exports.addRepayment = async (req, res) => {
+ exports.addRepayment = async (req, res) => {
   try {
     const { id } = req.params;
-    const { amount, repaidAt, notes } = req.body;
+    const { amount, notes } = req.body; // 👈 removed repaidAt from client
 
     if (!amount || amount <= 0) {
       return res.status(400).json({
@@ -486,10 +486,10 @@ exports.addRepayment = async (req, res) => {
     const totalRepaid = request.repayments.reduce((sum, r) => sum + r.amount, 0);
     const newBalance = request.amount - (totalRepaid + amount);
 
-    // Add repayment
+    // Add repayment (server-generated timestamp)
     const repaymentEntry = {
       amount,
-      repaidAt: repaidAt || new Date(),
+      repaidAt: new Date(), // 👈 always set by server
       balanceRemaining: newBalance,
       notes: notes || ""
     };

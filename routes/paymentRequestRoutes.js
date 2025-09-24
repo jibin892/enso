@@ -8,6 +8,9 @@ router.post("/", paymentRequestController.createPaymentRequest);
 // Get all payment requests for a user
 router.get("/:userUUID", paymentRequestController.getPaymentRequests);
 
+router.get("/payment-requests/:userUUID", paymentRequestController.getUserRecentActivity);
+
+
 // Update payment request status
 router.put("/:id/status", paymentRequestController.updatePaymentRequestStatus);
 

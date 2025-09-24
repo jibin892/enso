@@ -11,6 +11,7 @@ const paymentRequestSchema = new mongoose.Schema(
   {
     senderUserUUID: { type: String, required: true },   // UUID of the user requesting payment
     receiverUserUUID: { type: String, required: true }, // UUID of the user receiving the request
+    userUUID: { type: String, required: true }, // UUID of the user receiving the request
     amount: { type: Number, required: true },           // requested amount
     currency: { type: String, default: "INR" },         // optional, defaults to INR
     notes: { type: String, default: "" },               // optional additional note
@@ -32,6 +33,6 @@ const paymentRequestSchema = new mongoose.Schema(
 );
 
 // Optional: add an index for faster lookups
-paymentRequestSchema.index({ senderUserUUID: 1, receiverUserUUID: 1 });
+paymentRequestSchema.index({ senderUserUUID: 1, receiverUserUUID: 1,userUUID:1 });
 
 module.exports = mongoose.model("PaymentRequest", paymentRequestSchema);

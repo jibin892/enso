@@ -5,7 +5,7 @@ const PaymentRequest = require("../models/PaymentRequest");
 // Send push notification from sender to receiver
 exports.notifyUserByUUIDs = async (req, res) => {
   try {
-    const { senderUserUUID, receiverUserUUID, type, amount, notes, currency } = req.body;
+    const { senderUserUUID, receiverUserUUID,userUUID, type, amount, notes, currency } = req.body;
 
     if (!senderUserUUID || !receiverUserUUID || !type) {
       return res.status(400).json({
@@ -52,6 +52,7 @@ exports.notifyUserByUUIDs = async (req, res) => {
       paymentRequest = new PaymentRequest({
         senderUserUUID,
         receiverUserUUID,
+        userUUID,
         amount,
         currency: currency || "INR",
         notes: notes || ""

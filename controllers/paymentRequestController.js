@@ -114,7 +114,17 @@ exports.getPaymentRequests = async (req, res) => {
     // Debug
     console.log("👉 API param userUUID:", cleanUUID);
 
-    const requests = await PaymentRequest.find({ userUUID: cleanUUID }).sort({ createdAt: -1 });
+     const requests = await PaymentRequest.find({
+      $or: [
+        {userUUID:cleanUUID},
+        { receiverUserUUID: cleanUUID },
+        {senderUserUUID:cleanUUID}
+      ],
+    
+    }).sort({ createdAt: -1 });
+
+
+    // const requests = await PaymentRequest.find({ userUUID: cleanUUID }).sort({ createdAt: -1 });
 
     console.log("👉 Found requests:", requests.length);
 

@@ -107,24 +107,20 @@ exports.getPaymentRequests = async (req, res) => {
   }
 };
 
-// ✅ Get all payment requests for a user (with sender & receiver details, role, totals)
-exports.getUserRecentActivity = async (req, res) => {
+ exports.getUserRecentActivity = async (req, res) => {
   try {
-    const { userUUID } = req.params;
+    const cleanUUID = (req.params.userUUID || "").trim();
 
-    // 1️⃣ Fetch all requests where this user is sender OR receiver
-    const requests = await PaymentRequest.find({
-      $or: [
-        { senderUserUUID: userUUID },
-        { receiverUserUUID: userUUID }
-      ],
-      // status: { $nin: ["DECLINED", "PAID"] } // exclude declined & paid
-    }).sort({ createdAt: -1 });
+    // Debug
+    console.log("👉 API param userUUID:", cleanUUID);
+
+    const requests = await PaymentRequest.find({ userUUID: cleanUUID }).sort({ createdAt: -1 });
+
+    console.log("👉 Found requests:", requests.length);
 
     let totalBorrowed = 0;
     let totalLent = 0;
 
-    // 2️⃣ Enrich each request
     const enrichedRequests = await Promise.all(
       requests.map(async (reqDoc) => {
         const sender = await User.findOne({ userUUID: reqDoc.senderUserUUID }).select(
@@ -134,7 +130,6 @@ exports.getUserRecentActivity = async (req, res) => {
           "userUUID name email mobileNumber platform imageUrl"
         );
 
-        // Human-readable createdAt
         const humanReadableDate = new Date(reqDoc.createdAt).toLocaleString("en-IN", {
           weekday: "short",
           year: "numeric",
@@ -144,20 +139,15 @@ exports.getUserRecentActivity = async (req, res) => {
           minute: "2-digit"
         });
 
-        // ✅ Determine role
-        const role = reqDoc.senderUserUUID === userUUID ? "LENT" : "BORROWED";
+        const role = reqDoc.senderUserUUID === cleanUUID ? "LENT" : "BORROWED";
 
-        // ✅ Update totals
-        if (role === "LENT") {
-          totalLent += reqDoc.amount;
-        } else {
-          totalBorrowed += reqDoc.amount;
-        }
+        if (role === "LENT") totalLent += reqDoc.amount;
+        else totalBorrowed += reqDoc.amount;
 
         return {
           _id: reqDoc._id,
-          sender: sender || null,
-          receiver: receiver || null,
+          sender,
+          receiver,
           amount: reqDoc.amount,
           currency: reqDoc.currency,
           notes: reqDoc.notes,
@@ -170,26 +160,15 @@ exports.getUserRecentActivity = async (req, res) => {
       })
     );
 
-    // 3️⃣ Send response with totals
     res.status(200).json({
       success: true,
-      message: "Payment requests retrieved successfully",
-      totals: {
-        BORROWED: totalBorrowed,
-        LENT: totalLent
-      },
+      message: "User recent activity retrieved successfully",
+      totals: { BORROWED: totalBorrowed, LENT: totalLent },
       data: enrichedRequests
     });
-
   } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to fetch payment requests",
-      error: {
-        title: "Server Error",
-        description: error.message
-      }
-    });
+    console.error("❌ Error in getUserRecentActivity:", error);
+    res.status(500).json({ success: false, message: "Failed", error: error.message });
   }
 };
 

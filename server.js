@@ -23,6 +23,11 @@ app.use("/api/notifications", notificationRoutes);
 const paymentRequestRoutes = require("./routes/paymentRequestRoutes");
 app.use("/api/payment-requests", paymentRequestRoutes);
 
+
+// Routes
+const billRoutes = require("./routes/billRoutes");
+app.use("/api/bills", billRoutes);
+
 // Connect MongoDB
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB Connected"))
